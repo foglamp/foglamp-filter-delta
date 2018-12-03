@@ -18,16 +18,26 @@
 #include <filter_plugin.h>
 #include <filter.h>
 #include <reading_set.h>
+#include <map>
+#include <rapidjson/writer.h>
 
 #define FILTER_NAME "delta"
-#define DEFAULT_CONFIG "{\"plugin\" : { \"description\" : \"Scale filter plugin\", " \
+#define DEFAULT_CONFIG "{\"plugin\" : { \"description\" : \"Delta filter plugin\", " \
                        		"\"type\" : \"string\", " \
 				"\"default\" : \"" FILTER_NAME "\" }, " \
 			 "\"enable\": {\"description\": \"A switch that can be used to enable or disable execution of " \
 					 "the delta filter.\", " \
 				"\"type\": \"boolean\", " \
-				"\"default\": \"false\" } }"
+				"\"default\": \"false\" }, " \
+			"\"config\" : {\"description\" : \"Delta filter configuration.\", " \
+				"\"type\" : \"JSON\", " \
+				"\"default\" : {}} }"
+
 using namespace std;
+using namespace rapidjson;
+
+// Map for sent readings
+map<const string, Reading*> lastReading;
 
 /**
  * The Filter plugin interface
@@ -74,12 +84,88 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config,
 			  OUTPUT_HANDLE *outHandle,
 			  OUTPUT_STREAM output)
 {
-	FogLampFilter* handle = new FogLampFilter(FILTER_NAME,
-						  *config,
-						  outHandle,
-						  output);
+	FogLampFilter *handle;
+	handle = new FogLampFilter(FILTER_NAME,
+				   *config,
+				   outHandle,
+				   output);
 
 	return (PLUGIN_HANDLE)handle;
+}
+
+/**
+ * Compare datapoint values of two readings
+ *
+ * Assuming a reading with two datapoints X, Y
+ * If X and Y both have same value in old and new
+ * reading data, we return true.
+ * If only Y has same value but X changes, we return false.
+ *
+ * @param o	Old reading data
+ * @param n	New reading data
+ * @return	True if the two readings
+ *		have same content, false otherwise
+ *
+ * NOTE: this routine can be moved to Reading class
+ */
+bool compareReadigData(Reading* o, Reading* n)
+{
+	bool ret = false;
+
+	// Get a reading DataPoint
+	const vector<Datapoint *>& oDataPoints = o->getReadingData();
+	const vector<Datapoint *>& nDataPoints = n->getReadingData();
+
+	// Iterate the datapoints of NEW reading
+	for (vector<Datapoint *>::const_iterator nIt = nDataPoints.begin();
+						 nIt != nDataPoints.end();
+						 ++nIt)
+	{
+	        // Get the reference to a DataPointValue
+		const DatapointValue& nValue = (*nIt)->getData();
+
+		// Iterate the datapoints of OLD reading
+		for (vector<Datapoint *>::const_iterator oIt = oDataPoints.begin();
+							 oIt != oDataPoints.end();
+							 ++oIt)
+		{
+			if ((*nIt)->getName().compare((*oIt)->getName()) != 0)
+			{
+				// Different name, continue
+				continue;
+			}
+			
+	                // Get the reference to a DataPointValue
+                        const DatapointValue& oValue = (*oIt)->getData();
+
+			// Same datapoint name: check type
+			if (oValue.getType() != nValue.getType())
+			{
+				// Different type: return false
+				return false;
+			}
+
+			switch(nValue.getType())
+			{
+				case DatapointValue::T_INTEGER:
+					ret = nValue.toInt() == oValue.toInt();
+					break;
+				case DatapointValue::T_FLOAT:
+					ret = nValue.toDouble() == oValue.toDouble();
+					break;
+				case DatapointValue::T_STRING:
+					ret = nValue.toString().compare(oValue.toString()) == 0;
+					break;
+				case DatapointValue::T_FLOAT_ARRAY:
+					// T_FLOAT_ARRAY not supported right now
+				default:
+					break;
+			}
+		}
+	}
+
+	// Return compare value
+	return ret;
 }
 
 /**
@@ -99,43 +185,134 @@ void plugin_ingest(PLUGIN_HANDLE *handle,
 		return;
 	}
 
-	// 1- We might need to transform the inout readings set: example
-	// ReadingSet* newReadings = scale_readings(scaleFactor, readingSet);
+	vector<Reading *> newReadings;
 
 	// Just get all the readings in the readingset
 	const vector<Reading *>& readings = ((ReadingSet *)readingSet)->getAllReadings();
-	// Iterate the readings
-	for (vector<Reading *>::const_iterator elem = readings.begin();
-						      elem != readings.end();
-						      ++elem)
-	{
-		// Get a reading DataPoint
-		const vector<Datapoint *>& dataPoints = (*elem)->getReadingData();
-		// Iterate the datapoints
-		for (vector<Datapoint *>::const_iterator it = dataPoints.begin(); it != dataPoints.end(); ++it)
-		{
-			// Get the reference to a DataPointValue
-			DatapointValue& value = (*it)->getData();
 
-			// do nothing
+	// Iterate the input readings
+	//for (vector<Reading *>::const_iterator elem = readings.begin();
+	for (auto elem = readings.begin();
+		  elem != (readings.end());
+		  ++elem)
+	{
+		bool addReading = true;
+
+		const string key = (*elem)->getAssetName();
+		std::map<const string, Reading*>::iterator lastValue = lastReading.find(key);
+
+		// Get current saved reading
+		if (lastValue == lastReading.end())
+		{
+			// Add the current reading to the map
+			lastReading[key] = new Reading(**elem);
+		}
+		else
+		{
+			// compareValues: true = same data
+			if (compareReadigData(lastReading[key], *elem))
+			{
+				// Same data, don't send this reading
+				addReading = false;
+			}
+			else
+			{
+				// Free old value
+				delete lastValue->second;
+				// Update the new value
+				lastReading[key] = new Reading(**elem);
+			}
+		}
+
+		if (addReading)
+		{
+			// Copy the input reading
+			newReadings.push_back(new Reading(**elem));
 		}
 	}
 
-	// 2- optionally free reading set
-	// With the above DataPointValue change we don't need to free input data
+	// Remove the input readingSet data
+	delete (ReadingSet *)readingSet;
 
-	// 3- pass newReadings to filter->m_func instead of readings if needed.
-	// With the value change we can pass same input readingset just modified
-	filter->m_func(filter->m_data, readingSet);
+	// Create a new ReadingSet from new reading data
+	ReadingSet *newReadingSet = new ReadingSet(&newReadings);
+
+	// Pass newReadings to filter->m_func
+	filter->m_func(filter->m_data, newReadingSet);
 }
 
 /**
  * Call the shutdown method in the plugin
+ *
+ * @return	A JSON string with data to persist in storage service
  */
-void plugin_shutdown(PLUGIN_HANDLE *handle)
+string plugin_shutdown(PLUGIN_HANDLE *handle)
 {
-	FogLampFilter* data = (FogLampFilter *)handle;
-	delete data;
+	FogLampFilter* filter = (FogLampFilter *)handle;
+
+	string output = "{\"delta\" : [";
+	for (auto it = lastReading.begin();
+		  it != lastReading.end();
+		  ++it)
+	{
+		output += it->second->toJSON();
+		if (std::next(it, 1) != lastReading.end())
+			output += ",";
+		delete it->second;
+	}
+
+	output += "]}";
+
+	// Free resources
+	delete filter;
+
+	// Return JSON string
+	return output;
+}
+
+/**
+ * Plugin start with plugin data from storage service
+ *
+ * @param    handle		The filter handle
+ * @param    storedData		The stored plugin data
+ *				from last run.
+ */
+void plugin_start(PLUGIN_HANDLE *handle,
+		  const string& storedData)
+{
+	FogLampFilter* filter = (FogLampFilter *)handle;
+	// Parse JSON plugin_data
+	Document JSONData;
+	JSONData.Parse(storedData.c_str());
+	if (JSONData.HasParseError())
+	{
+		Logger::getLogger()->error("%s filter '%s' error: failure parsing "
+					   "plugin data JSON object '%s'",
+					   FILTER_NAME,
+					   filter->getConfig().getName().c_str(),
+					   storedData.c_str());
+	}
+	else if(JSONData.HasMember("delta") &&
+		JSONData["delta"].IsArray())
+	{
+		const Value& readingArray = JSONData["delta"];
+		for (Value::ConstValueIterator itr = readingArray.Begin();
+						itr !=readingArray.End();
+						++itr)
+		{
+			
+			string assetName = (*itr)["asset_code"].GetString();
+			lastReading[assetName] = new JSONReading(*itr);
+		}
+	}
+	else
+	{
+		Logger::getLogger()->error("Filter %s '%s' error: key " "delta" " not found "
+					   " or not valid in plugin data JSON object'%s'",
+					   FILTER_NAME,
+					   filter->getConfig().getName().c_str(),
+					   storedData.c_str());
+	}
 }
 
 // End of extern "C"
