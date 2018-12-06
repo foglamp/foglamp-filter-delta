@@ -30,20 +30,21 @@ class DeltaFilter : public FogLampFilter {
                         OUTPUT_HANDLE *outHandle,
                         OUTPUT_STREAM out);
 		~DeltaFilter();
-		void	ingest(ReadingSet *in, std::vector<Reading *>& out);
+		void	ingest(std::vector<Reading *> *in, std::vector<Reading *>& out);
 	private:
 		class DeltaData {
 			public:
 				DeltaData(Reading *, double tolerance, struct timeval rate);
 				~DeltaData();
-				bool	evaluate(Reading *);
+				bool			evaluate(Reading *);
+				const std::string& 	getAssetName() { return m_lastSent->getAssetName(); };
 			private:
 				Reading		*m_lastSent;
 				struct timeval	m_lastSentTime;
 				double		m_tolerance;
 				struct timeval	m_rate;
 		};
-		typedef std::map<std::string, DeltaData *> DeltaMap;
+		typedef std::map<const std::string, DeltaData *> DeltaMap;
 		void 		handleConfig(const ConfigCategory& conf);
 		DeltaMap	m_state;
 		double		m_tolerance;

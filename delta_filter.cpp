@@ -60,16 +60,15 @@ DeltaFilter::~DeltaFilter()
  * The incoming readings that are not forwarded will be deleted, if a reading
  * is forwarded then it will put put in the out vector and not freed.
  *
- * @param readingSet	The incoming reading set from the previous filter in the pipeline
+ * @param readings	The incoming readings from the previous filter in the pipeline
  * @param out		The outgoing set of readings, these are the delta values
  */
-void DeltaFilter::ingest(ReadingSet *readingSet, vector<Reading *>& out)
+void DeltaFilter::ingest(vector<Reading *> *readings, vector<Reading *>& out)
 {
-vector<Reading *> readings = readingSet->getAllReadings();
 
 	// Iterate over the readings
-	for (vector<Reading *>::const_iterator it = readings.begin();
-					it != readings.end(); it++)
+	for (vector<Reading *>::const_iterator it = readings->begin();
+					it != readings->end(); it++)
 	{
 		Reading *reading = *it;
 		// Find this asset in the map of values we hold	
@@ -77,7 +76,7 @@ vector<Reading *> readings = readingSet->getAllReadings();
 		if (deltaIt == m_state.end())
 		{
 			DeltaData *delta = new DeltaData(reading, m_tolerance, m_rate);
-			m_state.insert(pair<string, DeltaData *>(reading->getAssetName(), delta));
+			m_state.insert(pair<string, DeltaData *>(delta->getAssetName(), delta));
 			out.push_back(*it);
 		}
 		else if (deltaIt->second->evaluate(reading))
@@ -90,12 +89,12 @@ vector<Reading *> readings = readingSet->getAllReadings();
 			delete *it;
 		}
 	}
-	readings.clear();
+	readings->clear();
 }
 
 /**
  * Constructor for the DataData class. This is a private class within
- * the fitler class and is used to store the data about a particular
+ * the filter class and is used to store the data about a particular
  * asset.
  *
  * @param reading	The reading this delta data related to
@@ -254,7 +253,12 @@ DeltaFilter::handleConfig(const ConfigCategory& config)
 	m_tolerance = strtof(config.getValue("tolerance").c_str(), NULL);
 	int minRate = strtol(config.getValue("minRate").c_str(), NULL, 10);
 	string unit = config.getValue("rateUnit");
-	if (unit.compare("per second") == 0)
+	if (minRate == 0)
+	{
+		m_rate.tv_sec = 0;
+		m_rate.tv_usec = 0;
+	}
+	else if (unit.compare("per second") == 0)
 	{
 		m_rate.tv_sec = 0;
 		m_rate.tv_usec = 1000000 / minRate;

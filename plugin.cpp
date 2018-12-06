@@ -25,22 +25,22 @@
 #define FILTER_NAME "delta"
 #define DEFAULT_CONFIG "{\"plugin\" : { \"description\" : \"Delta filter plugin\", " \
                        		"\"type\" : \"string\", " \
-				"\"default\" : \"" FILTER_NAME "\", \"readonly\" : true }, " \
+				"\"default\" : \"" FILTER_NAME "\", \"readonly\" : \"true\" }, " \
 			 "\"enable\": {\"description\": \"A switch that can be used to enable or disable execution of " \
 					 "the delta filter.\", " \
 				"\"type\": \"boolean\", " \
-				"\"default\": \"false\", \"order\" : 4 }, " \
+				"\"default\": \"false\", \"order\" : \"4\" }, " \
 			 "\"tolerance\": {\"description\": \"A percentage difference that will be tolerated " \
 					 "when determining if values are equal.\", " \
 				"\"type\": \"float\", " \
-				"\"default\": \"0\", \"order\" : 1 }, " \
+				"\"default\": \"0\", \"order\" : \"1\" }, " \
 			 "\"minRate\": {\"description\": \"The minimum rate at which data must be sent\", " \
 				"\"type\": \"integer\", " \
-				"\"default\": \"0\", \"order\" : 2 }, " \
-			 "\"rateUnits\": {\"description\": \"The unit used to evaluate the minimum rate\", " \
+				"\"default\": \"0\", \"order\" : \"2\" }, " \
+			 "\"rateUnit\": {\"description\": \"The unit used to evaluate the minimum rate\", " \
 				"\"type\": \"enumeration\", " \
-				"\"options\" : [ \"per second\", \"per minute\", \"per hour\", \"per day\" ]" \
-				"\"default\": \"per second\", \"order\" : 3 } " \
+				"\"options\" : [ \"per second\", \"per minute\", \"per hour\", \"per day\" ], " \
+				"\"default\": \"per second\", \"order\" : \"3\" } " \
 			"}"
 
 using namespace std;
@@ -91,8 +91,8 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config,
 			  OUTPUT_HANDLE *outHandle,
 			  OUTPUT_STREAM output)
 {
-	FogLampFilter *handle;
-	handle = new FogLampFilter(FILTER_NAME,
+	DeltaFilter *handle;
+	handle = new DeltaFilter(FILTER_NAME,
 				   *config,
 				   outHandle,
 				   output);
@@ -118,7 +118,7 @@ void plugin_ingest(PLUGIN_HANDLE *handle,
 	}
 
 	vector<Reading *> newReadings;
-	filter->ingest(readingSet, newReadings);
+	filter->ingest(readingSet->getAllReadingsPtr(), newReadings);
 
 	// Remove the input readingSet data
 	delete (ReadingSet *)readingSet;
