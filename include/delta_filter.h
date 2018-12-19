@@ -31,6 +31,7 @@ class DeltaFilter : public FogLampFilter {
                         OUTPUT_STREAM out);
 		~DeltaFilter();
 		void	ingest(std::vector<Reading *> *in, std::vector<Reading *>& out);
+		void	reconfigure(const std::string& newConfig);
 	private:
 		class DeltaData {
 			public:

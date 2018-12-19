@@ -238,6 +238,16 @@ struct timeval	now, res;
 }
 
 /**
+ * Handle the reconfiguration of this filter
+ */
+void
+DeltaFilter::reconfigure(const string& newConfig)
+{
+	setConfig(newConfig);
+        handleConfig(m_config);                   
+}
+
+/**
  * Handle the configuration of the delta filter
  *
  * Configuration items
