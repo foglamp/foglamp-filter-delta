@@ -29,18 +29,20 @@
 			 "\"enable\": {\"description\": \"A switch that can be used to enable or disable execution of " \
 					 "the delta filter.\", " \
 				"\"type\": \"boolean\", " \
+				"\"displayName\": \"Enable\", " \
 				"\"default\": \"false\", \"order\" : \"4\" }, " \
 			 "\"tolerance\": {\"description\": \"A percentage difference that will be tolerated " \
 					 "when determining if values are equal.\", " \
 				"\"type\": \"float\", " \
-				"\"default\": \"0\", \"order\" : \"1\" }, " \
+				"\"default\": \"0\", \"order\" : \"1\", \"displayName\" : \"Tolerance %\" }, " \
 			 "\"minRate\": {\"description\": \"The minimum rate at which data must be sent\", " \
 				"\"type\": \"integer\", " \
-				"\"default\": \"0\", \"order\" : \"2\" }, " \
+				"\"default\": \"0\", \"order\" : \"2\", \"displayName\" : \"Minimum Rate\" }, " \
 			 "\"rateUnit\": {\"description\": \"The unit used to evaluate the minimum rate\", " \
 				"\"type\": \"enumeration\", " \
 				"\"options\" : [ \"per second\", \"per minute\", \"per hour\", \"per day\" ], " \
-				"\"default\": \"per second\", \"order\" : \"3\" } " \
+				"\"default\": \"per second\", " \
+				"\"order\" : \"3\", \"displayName\" : \"Minimum Rate Units\" } " \
 			"}"
 
 using namespace std;
