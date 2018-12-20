@@ -142,9 +142,20 @@ void plugin_shutdown(PLUGIN_HANDLE *handle)
 
 	// Free resources
 	delete filter;
+}
 
-	// Return JSON string
-	return;
+/**
+ * Call the reconfigure method in the plugin
+ *
+ * @param handle	The plugin handle, aka instance of DeltaFilter
+ * @param newConfig	The new configuration
+ * @return	A JSON string with data to persist in storage service
+ */
+void plugin_reconfigure(PLUGIN_HANDLE *handle, const string& newConfig)
+{
+DeltaFilter *filter = (DeltaFilter *)handle;
+
+	filter->reconfigure(newConfig);
 }
 
 /**
