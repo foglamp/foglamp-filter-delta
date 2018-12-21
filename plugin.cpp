@@ -29,7 +29,7 @@
 			 "\"enable\": {\"description\": \"A switch that can be used to enable or disable execution of " \
 					 "the delta filter.\", " \
 				"\"type\": \"boolean\", " \
-				"\"displayName\": \"Enable\", " \
+				"\"displayName\": \"Enabled\", " \
 				"\"default\": \"false\", \"order\" : \"4\" }, " \
 			 "\"tolerance\": {\"description\": \"A percentage difference that will be tolerated " \
 					 "when determining if values are equal.\", " \
