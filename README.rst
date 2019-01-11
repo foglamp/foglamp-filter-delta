@@ -1,6 +1,6 @@
-********************
+====================
 FogLAMP delta Filter
-********************
+====================
 
 FogLAMP "delta" filter passes deltas of reading data. A new reading
 is only sent onwards if the value of one or more data points in the new
