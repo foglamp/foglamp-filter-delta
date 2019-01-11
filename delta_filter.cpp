@@ -71,6 +71,7 @@ void DeltaFilter::ingest(vector<Reading *> *readings, vector<Reading *>& out)
 					it != readings->end(); it++)
 	{
 		Reading *reading = *it;
+		lock_guard<mutex> guard(m_configMutex); // Protect against reconfiguration
 		// Find this asset in the map of values we hold	
 		DeltaMap::iterator deltaIt = m_state.find(reading->getAssetName());
 		if (deltaIt == m_state.end())
@@ -243,8 +244,13 @@ struct timeval	now, res;
 void
 DeltaFilter::reconfigure(const string& newConfig)
 {
+	lock_guard<mutex> guard(m_configMutex);
 	setConfig(newConfig);
-        handleConfig(m_config);                   
+        handleConfig(m_config);
+	for (DeltaMap::iterator it = m_state.begin(); it != m_state.end(); ++it)
+	{
+		it->second->reconfigure(m_tolerance, m_rate);
+	}
 }
 
 /**

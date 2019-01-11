@@ -15,6 +15,7 @@
 #include <string>                 
 #include <vector>
 #include <regex>
+#include <mutex>
 
 /**
  * A FogLAMP filter that is used to filter out duplicate data in the readings stream.
@@ -39,6 +40,11 @@ class DeltaFilter : public FogLampFilter {
 				~DeltaData();
 				bool			evaluate(Reading *);
 				const std::string& 	getAssetName() { return m_lastSent->getAssetName(); };
+				void			reconfigure(double tolerance, struct timeval rate)
+							{
+								m_tolerance = tolerance;
+								m_rate = rate;
+							};
 			private:
 				Reading		*m_lastSent;
 				struct timeval	m_lastSentTime;
@@ -50,6 +56,7 @@ class DeltaFilter : public FogLampFilter {
 		DeltaMap	m_state;
 		double		m_tolerance;
 		struct timeval	m_rate;
+		std::mutex	m_configMutex;
 };
 
 
