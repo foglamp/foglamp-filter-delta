@@ -65,6 +65,12 @@ static PLUGIN_INFORMATION info = {
 	DEFAULT_CONFIG	          // Default plugin configuration
 };
 
+typedef struct
+{
+	DeltaFilter	*handle;
+	std::string	configCatName;
+} FILTER_INFO;
+
 /**
  * Return the information about this plugin
  */
@@ -93,13 +99,14 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config,
 			  OUTPUT_HANDLE *outHandle,
 			  OUTPUT_STREAM output)
 {
-	DeltaFilter *handle;
-	handle = new DeltaFilter(FILTER_NAME,
-				   *config,
-				   outHandle,
-				   output);
-
-	return (PLUGIN_HANDLE)handle;
+	FILTER_INFO *info = new FILTER_INFO;
+	info->handle = new DeltaFilter(FILTER_NAME,
+					*config,
+					outHandle,
+					output);
+	info->configCatName = config->getName();
+	
+	return (PLUGIN_HANDLE)info;
 }
 
 /**
@@ -111,7 +118,8 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* config,
 void plugin_ingest(PLUGIN_HANDLE *handle,
 		   READINGSET *readingSet)
 {
-	DeltaFilter* filter = (DeltaFilter *)handle;
+	FILTER_INFO *info = (FILTER_INFO *) handle;
+	DeltaFilter *filter = info->handle;
 	if (!filter->isEnabled())
 	{
 		// Current filter is not active: just pass the readings set
@@ -121,12 +129,26 @@ void plugin_ingest(PLUGIN_HANDLE *handle,
 
 	vector<Reading *> newReadings;
 	filter->ingest(readingSet->getAllReadingsPtr(), newReadings);
+	const vector<Reading *>& readings = readingSet->getAllReadings();
+	for (vector<Reading *>::const_iterator elem = readings.begin();
+						      elem != readings.end();
+						      ++elem)
+	{
+		AssetTracker::getAssetTracker()->addAssetTrackingTuple(info->configCatName, (*elem)->getAssetName(), string("Filter"));
+	}
 
 	// Remove the input readingSet data
 	delete (ReadingSet *)readingSet;
 
 	// Create a new ReadingSet from new reading data
 	ReadingSet *newReadingSet = new ReadingSet(&newReadings);
+	const vector<Reading *>& readings2 = newReadingSet->getAllReadings();
+	for (vector<Reading *>::const_iterator elem = readings2.begin();
+						      elem != readings2.end();
+						      ++elem)
+	{
+		AssetTracker::getAssetTracker()->addAssetTrackingTuple(info->configCatName, (*elem)->getAssetName(), string("Filter"));
+	}
 
 	// Pass newReadings to filter->m_func
 	filter->m_func(filter->m_data, newReadingSet);
@@ -140,10 +162,9 @@ void plugin_ingest(PLUGIN_HANDLE *handle,
  */
 void plugin_shutdown(PLUGIN_HANDLE *handle)
 {
-	DeltaFilter* filter = (DeltaFilter *)handle;
-
-	// Free resources
-	delete filter;
+	FILTER_INFO *info = (FILTER_INFO *) handle;
+	delete info->handle;
+	delete info;
 }
 
 /**
@@ -155,8 +176,8 @@ void plugin_shutdown(PLUGIN_HANDLE *handle)
  */
 void plugin_reconfigure(PLUGIN_HANDLE *handle, const string& newConfig)
 {
-DeltaFilter *filter = (DeltaFilter *)handle;
-
+	FILTER_INFO *info = (FILTER_INFO *) handle;
+	DeltaFilter *filter = info->handle;
 	filter->reconfigure(newConfig);
 }
 
