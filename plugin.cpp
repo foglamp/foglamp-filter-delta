@@ -21,6 +21,7 @@
 #include <map>
 #include <rapidjson/writer.h>
 #include <delta_filter.h>
+#include <version.h>
 
 #define FILTER_NAME "delta"
 #define DEFAULT_CONFIG "{\"plugin\" : { \"description\" : \"Delta filter plugin\", " \
@@ -58,7 +59,7 @@ extern "C" {
  */
 static PLUGIN_INFORMATION info = {
         FILTER_NAME,              // Name
-        "1.0.0",                  // Version
+        VERSION,                  // Version
         0,          		  // Flags
         PLUGIN_TYPE_FILTER,       // Type
         "1.0.0",                  // Interface version
