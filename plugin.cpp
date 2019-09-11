@@ -1,5 +1,5 @@
 /*
- * FogLAMP "delta" filter plugin.
+ * Fledge "delta" filter plugin.
  *
  * Copyright (c) 2018 Dianomic Systems
  *
@@ -192,7 +192,7 @@ void plugin_reconfigure(PLUGIN_HANDLE *handle, const string& newConfig)
 void plugin_start(PLUGIN_HANDLE *handle,
 		  const string& storedData)
 {
-	FogLampFilter* filter = (FogLampFilter *)handle;
+	FledgeFilter* filter = (FledgeFilter *)handle;
 }
 
 // End of extern "C"

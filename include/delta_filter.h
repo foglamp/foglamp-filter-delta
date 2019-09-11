@@ -1,7 +1,7 @@
 #ifndef _DELTA_FILTER_H
 #define _DELTA_FILTER_H
 /*
- * FogLAMP "Delta" filter plugin.
+ * Fledge "Delta" filter plugin.
  *
  * Copyright (c) 2018 Dianomic Systems
  *
@@ -18,13 +18,13 @@
 #include <mutex>
 
 /**
- * A FogLAMP filter that is used to filter out duplicate data in the readings stream.
+ * A Fledge filter that is used to filter out duplicate data in the readings stream.
  * A tolerance may be added to the detection of duplicates, this tolerance is expressed
  * as a percentage change in the reading value that can be accepted.
  * It is also possible to define a minimum rate at whch readings may be send onwards,
  * regardless of the values.
  */
-class DeltaFilter : public FogLampFilter {
+class DeltaFilter : public FledgeFilter {
 	public:
 		DeltaFilter(const std::string& filterName,
                         ConfigCategory& filterConfig,

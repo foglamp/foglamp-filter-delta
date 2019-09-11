@@ -1,5 +1,5 @@
 /*
- * FogLAMP "delta" filter plugin.
+ * Fledge "delta" filter plugin.
  *
  * Copyright (c) 2018 Dianomic Systems
  *
@@ -23,7 +23,7 @@
 using namespace std;
 
 /**
- * Constructor for the Delta Filter. Calls the base FogLampFilter constructor
+ * Constructor for the Delta Filter. Calls the base FledgeFilter constructor
  * to setup the "plumbing" for the fitlers.
  * Also handles the configuration of the plugin.
  *
@@ -36,7 +36,7 @@ DeltaFilter::DeltaFilter(const std::string& filterName,
                                ConfigCategory& filterConfig,
                                OUTPUT_HANDLE *outHandle,
                                OUTPUT_STREAM out) :
-                                  FogLampFilter(filterName, filterConfig,
+                                  FledgeFilter(filterName, filterConfig,
                                                 outHandle, out)
 {
         handleConfig(filterConfig);                   
@@ -137,7 +137,7 @@ DeltaFilter::DeltaData::~DeltaData()
  * Note, the time used when considering rate is not the current time
  * but the tiem in the readings as the rate referes to the reading rate
  * and not real time. The two will be different because of buffering
- * without the services that make up a FogLAMP instance.
+ * without the services that make up a Fledge instance.
  *
  * @param candidiate	The candidiate reading
  */
